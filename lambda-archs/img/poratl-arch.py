@@ -15,10 +15,10 @@ with Diagram("Web Service", show=False):
 
     s3 = storage.S3("SPA Resource")
 
-    with Cluster("R-ISUCON"):
-        bench = compute.EC2("bench marker")
+    with Cluster("For-Batch"):
+        bench = compute.EC2("worker")
 
-        with Cluster("competitors"):
+        with Cluster("compute"):
             with Cluster("teamA"):
                 c1a= compute.EC2("")
                 c2a=compute.EC2("")
