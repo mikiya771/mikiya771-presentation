@@ -8,7 +8,7 @@ paginate: true
 class: title
 -->
 
-# AWS Lambdaとローカル開発
+# AWS Lambdaのローカル開発紹介
 ---
 <!--
 class: slides
@@ -20,7 +20,7 @@ class: slides
     - 個人開発
 - 作るものについて
     - What
-        - ありがちなサーバーレスっぽいアーキテクチャ
+        - サーバーレスっぽいアーキテクチャ
 - LTで話すこと
     - Serverless Frameworkに乗っからない場合のローカルの開発とテストのこと
         - Lambda RIE と moto の紹介
@@ -39,12 +39,12 @@ class: slides
 # 作ろうとしているアーキテクチャの全体像(前提)
 
 - serverless frameworkで管理しきれない部分もある (EC2の部分など)
-- AWS APIを叩く形のIaCツールは一つに絞りたい (CFn系列 or Terraform系列)
+- AWS APIを叩く形のIaCツールは一つに絞りたい (CFn系列 or <span class="target"> Terraform系列 </span>)
 
 <br>
 <span class="strong">
     Serverless Frameworkに乗っからない場合の<br>
-    Lambdaのローカル開発環境を考える
+    Lambdaのローカル開発環境
 </span>
 
 ---
@@ -63,7 +63,7 @@ class: slides
 - そもそも Lambda は コンテナによるデプロイも可能になっている
 - Lambdaからコンテナへのinput/outputのemulatorが存在する
     - Runtime Interface Emulator (RIE) と呼ばれる
-    - 言語によっては公式配布のベースイメージに含まれている
+    - 公式配布のベースイメージにもともと含まれていたり(言語による)
 
 
 参考: https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/images-test.html
@@ -82,7 +82,7 @@ RIE を実際に試してみる
 ![bg right fit vertical](./img/curl.png)
 
 <span class=target>
-問題点 <br>
+ちょっと困ること <br>
 起動用の特殊な Pathへのアクセス <br>
 レスポンスの構造が API Gateway向け
 
@@ -91,12 +91,16 @@ RIE を実際に試してみる
 ---
 # フロントからの繋ぎ先としてのローカル環境
 
-Lambda Proxy統合 と RIEのPathについて調整するための変換コンテナの用意
+Lambda Proxy統合 の役割を果たすmockを用意する
+
+<br>
+
+こういう感じ: https://github.com/mikiya771/api-gateway-rie-mock (とりあえず動くだけのものでwip)
 
 
-こういう感じ: https://github.com/mikiya771/api-gateway-rie-mock (とりあえず動くだけ)
+![bg right fit](./img/proxy.png)
 
-AWS資料: https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format 
+(参考)AWS資料: [Proxy統合フォーマット](https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format)
 
 ---
 # フロントからの繋ぎ先としてのローカル環境
@@ -141,23 +145,17 @@ AWS環境ではCloudFrontを経由することで解決している
 
 # Lambda"から"利用する側への準備(Database編)
 
+さらっと紹介
+
 - MySQL
     - docker
 - Firebase RealtimeDatabase
-    - firebase emulator (公式配布)
+    - [firebase emulator (公式配布)](https://firebase.google.com/docs/emulator-suite?hl=ja )
 - DynamoDB
-    - dynamodb local (公式配布)
-
----
-# Lambdaからの連携先のLocalでの扱い(補足)
-- dnyamodb local
-    - https://docs.aws.amazon.com/ja_jp/amazondynamodb/latest/developerguide/DynamoDBLocal.html
-- firebase emulator
-    - https://firebase.google.com/docs/emulator-suite?hl=ja 
+    - [dynamodb local (公式配布)](https://docs.aws.amazon.com/ja_jp/amazondynamodb/latest/developerguide/DynamoDBLocal.html)
     
 --- 
 # Lambdaからの連携先のLocalでの扱い(AWS API Call)
-`Cognito`や`SSM Parameter Store`などの利用を想定
 リクエストの形式と返り値の検証・ローカル起動時のmockを目的とする
 
 <span class=target> motoを利用する </span>
@@ -172,34 +170,39 @@ https://github.com/spulec/moto
 
 ---
 # Lambdaからの連携先のLocalでの扱い(moto)
-準備してみる
+準備
 
-- docker-composeを書いて
-- aws-sdkのconfigを書いて
+- docker-composeを書いて、実行する
+    - 簡単に立ち上がる
+- Dashboardがあるので、繋いでみる
+    - dashboard経由でリソースの状態を確認できる
 
-
-<span class="strong">
-できた！！ 簡単
-</span>
+![bg fit right vertical](./img/moto_server.png)
+![bg fit right vertical](./img/dashboard.png)
 
 ---
 # Lambdaからの連携先のLocalでの扱い(moto)
 
-サクッと試してみる
-- reset APIが生えているので、テスト用に叩けばいい
-- 簡易的なDashboardがあるので、debugの時とかに試せる
+サクッとテストも試してみる
+
+- reset APIが生えているので、テスト用に叩く
+- aws sdkはAPI Endpointを上書き指定できるのでmotoに向ける
+- instanceをセットアップした上で、describeして確認する
+
+![bg fit right vertical](./img/test.png)
+
 
 ---
 # まとめ
-Lambda RIE と moto server を利用することで、
+
+Lambda RIE と moto server は意外と便利で、
 AWSのサービスとくっつきがちな部分でも、
-- ある程度のテストができる
-- フロントのLocalでの繋ぎ先としての機能を果たさせることができる
+- ローカルである程度のテストがしやすくなる
+- フロントのLocalでの繋ぎ先としての機能を果たさせやすくなる
+
 
 ---
-# おまけ
+# おまけ(時間がとても余ったら)
 
-- Diagram as Code
-- Marp
-
----
+Diagram as Code とか Marp とか
+    
