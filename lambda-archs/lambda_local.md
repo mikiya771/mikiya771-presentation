@@ -8,27 +8,18 @@ paginate: true
 class: title
 -->
 
-# AWS Lambdaのローカル開発紹介
+# Web APIとしてのAWS Lambdaのローカル開発環境の話
 ---
 <!--
 class: slides
 -->
 
-# なんの話？
+# 導入: とある日
 
-- 文脈について
-    - 個人開発
-- 作るものについて
-    - What
-        - サーバーレスっぽいアーキテクチャ
-- LTで話すこと
-    - Serverless Frameworkに乗っからない場合のローカルの開発とテストのこと
-        - Lambda RIE と moto の紹介
+こんなものを作ろうとしていました
 
----
-# 作ろうとしているアーキテクチャの全体像(概要)
 -  <span class="target">Web Service本体 <-*今回話す部分*</span>
-    - <span class="target">SPA + Lambda の構成 (TS/JS)</span>
+    - <span class="target">SPA + Lambda の構成</span>
     - <span class="target">Proxy統合の利用</span>
 - データ保管 (Firebase)
 - バッチ処理 (EC2などのインスタンス群)
@@ -36,74 +27,110 @@ class: slides
 ![bg right](./img/web_service.png)
 
 ---
-# 作ろうとしているアーキテクチャの全体像(前提)
+# 導入: 困りごと
 
-- serverless frameworkで管理しきれない部分もある (EC2の部分など)
-- AWS APIを叩く形のIaCツールは一つに絞りたい (CFn系列 or <span class="target"> Terraform系列 </span>)
+意気揚々と取り組んでいたが...
 
+- フロントエンドを書けば、APIとして叩く先の準備に困る
+- バックエンドを書けば、他のAWSサービスとの連携に困る
 <br>
-<span class="strong">
-    Serverless Frameworkに乗っからない場合の<br>
-    Lambdaのローカル開発環境
+
+<span class=strong>
+さて、ローカルでどうやって試そう？(どうやってテストしよう？)
 </span>
+
+
+---
+# 導入
+<span class=strong>
+AWS Lambda のローカルの開発環境の話
+
+~ Lambda RIE と moto の紹介 ~
+</span>
+
 
 ---
 
-# ローカル開発環境でのチェック環境
+# ゴール
+
+- <span class=target>frontに対して、Fake Serverを提供できるようにする</span>
+    - 固定値を返すmockでもいいけど、状態変化をブラウザ経由で確認したい時に、ある程度動的なFake Serverがあると嬉しいので
+- テストについては下記の方針
+    - UT (small)
+        - 通常の言語ごとのテストで担保する
+    - <span class=target> アプリケーション外への通信が必要なテスト(medium) </span>
+        - API Call部分やDBアクセス
+        - 複数の操作による状態変化の確認
+    - AWSのリソースを含めた全体での統合テスト(large)
+        - ローカルでは全く担保せず、AWS環境を利用する
+---
+
+# ローカル開発環境を作る上で考えること
+- Lambda"を"利用する側への準備
+- Lambda"から"利用する側への準備
+
+---
+
+# ローカル開発環境を作る上で考えること
 - <span class=target >Lambda"を"利用する側への準備 </span>
     - <span class="target">フロントからの繋ぎ先としてのローカル環境</span>
 - Lambda"から"利用する側への準備
-    - DataAccess系
+    - DataAccess系 (サラッと)
     - AWS API Call系
 
 ---
 # フロントからの繋ぎ先としてのローカル環境
 
 <span class=target> Lambda を ローカルで動かす?</span>
-- そもそも Lambda は コンテナによるデプロイも可能になっている
-- Lambdaからコンテナへのinput/outputのemulatorが存在する
-    - Runtime Interface Emulator (RIE) と呼ばれる
-    - 公式配布のベースイメージにもともと含まれていたり(言語による)
+
+できれば、AWS上で動くものと同じように動かしたいが...
+
+- 実行環境について =  デプロイについて
+    - コンテナイメージを利用する
+        - Lambda は コンテナによるデプロイも可能になっている（昔は zip形式しかなかった...)
+- lambda の handler に event情報を渡す部分について
+    - http request/response　として emulation する仕組みの導入
+    - 公式配布の <span class=target>Runtime Interface Emulator(RIE)</span> を利用
 
 
 参考: https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/images-test.html
 
 ---
-# フロントからの繋ぎ先としてのローカル環境
+# フロントからの繋ぎ先としてのローカル環境(RIEを試す)
 
-RIE を実際に試してみる
-
-- Proxy統合用の Response構造で handler作成
-- RIEを含んだContainer Imageを作成
-- curlで試し打ち
-
-![bg right fit vertical](./img/lambda-code.png)
-![bg right fit vertical](./img/docker-code.png)
-![bg right fit vertical](./img/curl.png)
-
-<span class=target>
-ちょっと困ること <br>
-起動用の特殊な Pathへのアクセス <br>
-レスポンスの構造が API Gateway向け
-
-</span>
+コンテナを定義する
+![fit](./img/docker-code.png)
+起動して、RIEを試す
+![fit](./img/curl.png)
 
 ---
-# フロントからの繋ぎ先としてのローカル環境
 
-Lambda Proxy統合 の役割を果たすmockを用意する
+# フロントからの繋ぎ先としてのローカル環境(RIEを試す)
+![bg right fit](./img/lambda_code.png)
 
-<br>
+- 期待する形式にならない（下記が別形式)
+    - Lambdaの input/output event
+    - フロントの期待する API GW 経由のresponse　
 
-こういう感じ: https://github.com/mikiya771/api-gateway-rie-mock (とりあえず動くだけのものでwip)
+<span class=target>
+Lambdaから受け取るResponse(Event)から変形して、フロントに返すmockが必要
+</span>
 
 
-![bg right fit](./img/proxy.png)
+---
+# フロントからの繋ぎ先としてのローカル環境(RIE用の変換器)
+
+PoC的に bodyだけ返す 変換器 を作成
+- [api-gateway-rie-mock](https://github.com/mikiya771/api-gateway-rie-mock) (とりあえず動くだけのもの)
+
+変換器経由でRIEにリクエストを送ると bodyだけになる↓
+
+![fit](./img/proxy.png)
 
 (参考)AWS資料: [Proxy統合フォーマット](https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format)
 
 ---
-# フロントからの繋ぎ先としてのローカル環境
+# フロントからの繋ぎ先としてのローカル環境(CORS問題)
 
 フロントから呼び出す場合、CORSの問題がある。
 
@@ -117,30 +144,18 @@ AWS環境ではCloudFrontを経由することで解決している
 - CloudFrontによる変換
     - SPA側のDevServerに付随のProxy機能で担保
 - API Gateway → Lambda で起きることを担保する
-    - API GatewayによるRIEのための変換を独自のmockで担保
+    - RIE + 独自の変換器の利用
     
 ![bg right](./img/lambda_local_arch.png)
 
 ---
 # ローカル開発環境でのチェック環境
 - Lambda"を"利用する側への準備
-    - SPAの繋ぎ先としてのローカル環境
+    - フロントの繋ぎ先としてのローカル環境
 - <span class="target">Lambda"から"利用する側への準備</span>
     - <span class="target"> Database系（サラッと） </span>
     - <span class="target"> AWS API Call系</span>
 
----
-
-# Lambda"から"利用する側への準備(前提)
-
-- frontでの開発から接合する場合は、全て docker-composeでmockして一定動くようにする
-- テストについては下記の方針
-    - AWSのリソースを含めた全体での統合テスト
-        - ローカルではやらず、AWS環境を利用する
-    - 状態の変化を含むテスト
-        - 状態を持つ部分をコンテナで立ち上げてテストする
-    - それ以外
-        - 通常の言語ごとのテストで担保する
 ---
 
 # Lambda"から"利用する側への準備(Database編)
@@ -166,14 +181,14 @@ https://github.com/spulec/moto
         - 完全に状態管理できるわけではないが、簡易的に状態込みで管理してくれる(EC2の台数など)
     - 使い方
         - Python上で直接呼び出して利用可能
-        - <span class=target> サーバーとして起動して、SDK・CLIにendpointを指定して利用可能</span>
+        - <span class=target> サーバーモードで起動して、SDK・CLIにendpointを指定して利用可能</span>
 
 ---
 # Lambdaからの連携先のLocalでの扱い(moto)
 準備
 
 - docker-composeを書いて、実行する
-    - 簡単に立ち上がる
+    - 数秒で立ち上がる
 - Dashboardがあるので、繋いでみる
     - dashboard経由でリソースの状態を確認できる
 
@@ -195,13 +210,35 @@ https://github.com/spulec/moto
 ---
 # まとめ
 
-Lambda RIE と moto server は意外と便利で、
-AWSのサービスとくっつきがちな部分でも、
-- ローカルである程度のテストがしやすくなる
-- フロントのLocalでの繋ぎ先としての機能を果たさせやすくなる
+Lambda RIE と moto server は意外と便利。
+うまく利用すると、AWSのサービスとくっつきがちな部分でも、
+- mediumレベルのテストとしてローカルでテストできる
+- localである程度動的に動くものとして、フロントにある種のFake Serverを提供できる
 
+テストについては、
+[Testable Lambda｜AWS Summit Tokyo 2017](https://www.youtube.com/watch?v=C0zNc4bdWhY) をみると良いです。（こっちはlocalstack使っている)
 
 ---
+
+# おまけ: 今回とは別の選択肢
+
+`Serverless Framework` のpluginを利用すればローカルでもいけそうだが？
+
+- `CFn系 (Serverless Framework, AWS CDK ...)` か  `Terraform系` か 統一したい
+
+→ 今回は Terraform系に揃える前提で、 `Serverless Framework` に乗っからない前提にした
+
+なお、今回の方法だと、普通に docker-compose書くので、moto serverの追加など拡張はさせやすかった。
+
+---
+# おまけ: 今回とは別の選択肢
+
+`localstack` を `moto` の代わりに利用する？
+下記の理由で断念
+- 無料だと一部機能しか使えない
+- かなり機能が充実している分、ローカルで動かすにはやや重たい
+---
+
 # おまけ(時間がとても余ったら)
 
 Diagram as Code とか Marp とか
