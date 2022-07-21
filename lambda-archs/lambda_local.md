@@ -212,11 +212,13 @@ https://github.com/spulec/moto
 
 Lambda RIE と moto server は意外と便利。
 うまく利用すると、AWSのサービスとくっつきがちな部分でも、
+
 - mediumレベルのテストとしてローカルでテストできる
 - localである程度動的に動くものとして、フロントにある種のFake Serverを提供できる
 
 テストについては、
 [Testable Lambda｜AWS Summit Tokyo 2017](https://www.youtube.com/watch?v=C0zNc4bdWhY) が良いです。
+
 ---
 
 # おまけ: 今回とは別の選択肢
