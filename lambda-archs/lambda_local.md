@@ -216,8 +216,7 @@ Lambda RIE と moto server は意外と便利。
 - localである程度動的に動くものとして、フロントにある種のFake Serverを提供できる
 
 テストについては、
-[Testable Lambda｜AWS Summit Tokyo 2017](https://www.youtube.com/watch?v=C0zNc4bdWhY) をみると良いです。（こっちはlocalstack使っている)
-
+[Testable Lambda｜AWS Summit Tokyo 2017](https://www.youtube.com/watch?v=C0zNc4bdWhY) が良いです。
 ---
 
 # おまけ: 今回とは別の選択肢
