@@ -1,0 +1,52 @@
+/* @theme ordm*/
+
+@import 'default';
+
+section {
+    font-family: "Arial", "Hiragino Maru Gothic ProN";
+    font-size: 30px;
+    padding: 40px;
+    background-color: lightyellow;
+}
+
+section.title h1 {
+    color: green;
+    font-family: "Arial", "Hiragino Kaku Gothic ProN";
+    font-size: 60px;
+    text-align: center;
+}
+
+section.title {
+    color: black;
+    font-family: "Arial", "Hiragino Maru Gothic ProN";
+    font-size: 36px;
+    text-align: center;
+    padding: 40px;
+}
+
+section.slides h1 {
+    color: green;
+    font-family: "Arial", "Hiragino Kaku Gothic ProN";
+    font-size: 36px;
+    position: absolute;
+    left: 50px; top: 50px;
+}
+
+section.slides h2 {
+    color: lightseagreen;
+    font-family: "Arial", "Hiragino Kaku Gothic ProN";
+    font-size: 32px;
+    position: relative;
+    left: 50px; top: 100px;
+}
+
+section.slides .target {
+    color: darkred;
+}
+
+section.slides .strong {
+    color: lightseagreen;
+    font-family: "Arial", "Hiragino Kaku Gothic ProN";
+    font-size: 36px;
+    text-align: center;
+}
